@@ -32,7 +32,7 @@ void MessageQueue<T>::send(T &&msg)
     std::lock_guard<std::mutex> lck(_mtx);
 
     // add vector to queue
-    std::cout << " Message #" << msg << " will be added to the queue" << std::endl;
+    // std::cout << " Message #" << msg << " will be added to the queue" << std::endl;
     _messages.push_back(std::move(msg));
     _cond.notify_one();
 }
@@ -53,9 +53,13 @@ void TrafficLight::waitForGreen()
     // Once it receives TrafficLightPhase::green, the method returns.
     while(true)
     {
-        auto msg = _queue->receive();
-        std::cout << " Message #" << msg << " has been removed from the queue " << std::endl;
-        if (msg == TrafficLightPhase::green) return;
+        auto msg = _message_queue.receive();
+        // std::cout << " Message #" << msg << " has been removed from the queue " << std::endl;
+        if (msg == TrafficLightPhase::green)
+        {
+            std::cout << "Receive message of TrafficLightPhase green!\n";
+            return;
+        }
     }
 }
 
@@ -63,7 +67,7 @@ TrafficLightPhase TrafficLight::getCurrentPhase()
 {
     return _currentPhase;
 }
-
+/*
 void TrafficLight::toggleCurrentPhase()
 {
     switch(this->getCurrentPhase())
@@ -80,6 +84,7 @@ void TrafficLight::toggleCurrentPhase()
             std::cout << "Not valid TraficLight is set, skipping ...\n"; break;
     }
 };
+*/
 
 void TrafficLight::simulate()
 {
@@ -98,28 +103,33 @@ void TrafficLight::cycleThroughPhases()
     // Time measurement
     auto start = std::chrono::high_resolution_clock::now();
     auto end = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::high_resolution_clock::duration();
-
+    std::chrono::duration<double> duration;
     std::random_device rd;
     std::mt19937 eng(rd());
     std::uniform_int_distribution<> distr(4, 6);
+    int time_span = distr(eng);
     while(true)
     {
-        std::this_thread::sleep_for(std::chrono::microseconds(1));
         end = std::chrono::high_resolution_clock::now();
         duration = end - start;
-        auto time_span = distr(eng);
         // toggle current phase and reset time measurement
         if (duration.count() > time_span){
-            std::cout << "Value of time span is : " << time_span << std::endl;
-            this->toggleCurrentPhase();
-            // reset the time measurement start point
-            start = end;
+            // std::cout << "Value of time span is : " << time_span << std::endl;
+            // trigger _currentPhase
+            if (_currentPhase == TrafficLightPhase::red)
+            {
+                _currentPhase = TrafficLightPhase::green;
+            }
+            else
+            {
+                _currentPhase = TrafficLightPhase::red;
+            }
+            // sends an update method to the message queue using move semantics
+            _message_queue.send(std::move(_currentPhase));
+            // reset the time measurement time span and start point
+            time_span = distr(eng);
+            start = std::chrono::high_resolution_clock::now();
         }
-        // sends an update method to the message queue using move semantics
-        //MessageQueue<T>::send(T &&msg)
-        //_messages<TrafficLightPhase>.send(std::move(this->getCurrentPhase));
-        _queue->send(std::move(this->getCurrentPhase()));
-        //_queue.send(std::move(this->getCurrentPhase()));
     }
+    std::this_thread::sleep_for(std::chrono::microseconds(1));
 }
