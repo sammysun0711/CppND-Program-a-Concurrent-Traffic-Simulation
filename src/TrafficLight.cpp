@@ -16,8 +16,9 @@ T MessageQueue<T>::receive()
     std::unique_lock<std::mutex> ulck(_mtx);
     _cond.wait(ulck, [this] {return !_messages.empty(); });
 
-    // remove last vector element from queue
+    // get first element from deque
     T msg = std::move(_messages.front());
+    // remove first element from deque
     _messages.pop_front();
     return msg; // will not be copied due to return value optimization (RVO) in C++
 }
@@ -32,7 +33,6 @@ void MessageQueue<T>::send(T &&msg)
     std::lock_guard<std::mutex> lck(_mtx);
 
     // add vector to queue
-    // std::cout << " Message #" << msg << " will be added to the queue" << std::endl;
     _messages.push_back(std::move(msg));
     _cond.notify_one();
 }
@@ -54,10 +54,8 @@ void TrafficLight::waitForGreen()
     while(true)
     {
         auto msg = _message_queue.receive();
-        // std::cout << " Message #" << msg << " has been removed from the queue " << std::endl;
         if (msg == TrafficLightPhase::green)
         {
-            std::cout << "Receive message of TrafficLightPhase green!\n";
             return;
         }
     }
@@ -67,24 +65,6 @@ TrafficLightPhase TrafficLight::getCurrentPhase()
 {
     return _currentPhase;
 }
-/*
-void TrafficLight::toggleCurrentPhase()
-{
-    switch(this->getCurrentPhase())
-    {
-        case TrafficLightPhase::red: 
-            _currentPhase = TrafficLightPhase::green;
-            std::cout << "Toggle TrafficLight from red to green\n";
-            break;
-        case TrafficLightPhase::green: 
-            _currentPhase = TrafficLightPhase::red;
-            std::cout << "Toggle TrafficLight from green to red\n";
-            break;
-        default:
-            std::cout << "Not valid TraficLight is set, skipping ...\n"; break;
-    }
-};
-*/
 
 void TrafficLight::simulate()
 {
@@ -100,10 +80,11 @@ void TrafficLight::cycleThroughPhases()
     // to the message queue using move semantics. The cycle duration should be a random value between 4 and 6 seconds. 
     // Also, the while-loop should use std::this_thread::sleep_for to wait 1ms between two cycles. 
 
-    // Time measurement
+    // Initialize time measurement
     auto start = std::chrono::high_resolution_clock::now();
     auto end = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> duration;
+    std::chrono::duration<double> duration = end - start;
+    // Initialize random time span
     std::random_device rd;
     std::mt19937 eng(rd());
     std::uniform_int_distribution<> distr(4, 6);
@@ -112,10 +93,8 @@ void TrafficLight::cycleThroughPhases()
     {
         end = std::chrono::high_resolution_clock::now();
         duration = end - start;
-        // toggle current phase and reset time measurement
         if (duration.count() > time_span){
-            // std::cout << "Value of time span is : " << time_span << std::endl;
-            // trigger _currentPhase
+            // toggle _currentPhase
             if (_currentPhase == TrafficLightPhase::red)
             {
                 _currentPhase = TrafficLightPhase::green;
@@ -126,10 +105,10 @@ void TrafficLight::cycleThroughPhases()
             }
             // sends an update method to the message queue using move semantics
             _message_queue.send(std::move(_currentPhase));
-            // reset the time measurement time span and start point
+            // reset the time measurement time span and start
             time_span = distr(eng);
             start = std::chrono::high_resolution_clock::now();
         }
+        std::this_thread::sleep_for(std::chrono::microseconds(1));
     }
-    std::this_thread::sleep_for(std::chrono::microseconds(1));
 }
