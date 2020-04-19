@@ -41,9 +41,9 @@ TrafficLightPhase TrafficLight::getCurrentPhase()
     return _currentPhase;
 }
 
-void TrafficLight::setCurrentPhase()
+void TrafficLight::toggleCurrentPhase()
 {
-    switch(getCurrentPhase())
+    switch(this->getCurrentPhase())
     {
         case TrafficLightPhase::red : _currentPhase = TrafficLightPhase::green; break;
         case TrafficLightPhase::green : _currentPhase = TrafficLightPhase::red; break;

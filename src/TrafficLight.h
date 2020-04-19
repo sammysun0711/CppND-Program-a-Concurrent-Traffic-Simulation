@@ -39,7 +39,7 @@ public:
     ~TrafficLight();
     // getters / setters
     TrafficLightPhase getCurrentPhase();
-    void setCurrentPhase();
+    void toggleCurrentPhase();
     // typical behaviour methods
     void waitForGreen();
     void simulate();
