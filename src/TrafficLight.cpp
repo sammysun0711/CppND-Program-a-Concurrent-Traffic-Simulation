@@ -17,8 +17,8 @@ T MessageQueue<T>::receive()
     _cond.wait(ulck, [this] {return !_messages.empty(); });
 
     // remove last vector element from queue
-    T msg = std::move(_messages.back());
-    _messages.pop_back();
+    T msg = std::move(_messages.front());
+    _messages.pop_front();
     return msg; // will not be copied due to return value optimization (RVO) in C++
 }
 
