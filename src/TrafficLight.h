@@ -19,9 +19,13 @@ template <class T>
 class MessageQueue
 {
 public:
+    T receive();
+    void send(T &&msg);
 
 private:
-    
+    std::condition_variable _cond;
+    std::mutex _mtx;
+    std::deque<T> _messages;
 };
 
 // FP.1 : Define a class „TrafficLight“ which is a child class of TrafficObject. 
@@ -54,6 +58,8 @@ private:
 
     std::condition_variable _condition;
     std::mutex _mutex;
+    std::shared_ptr<MessageQueue<TrafficLightPhase>> _queue;
+    //MessageQueue<TrafficLightPhase> _queue;
 };
 
 #endif

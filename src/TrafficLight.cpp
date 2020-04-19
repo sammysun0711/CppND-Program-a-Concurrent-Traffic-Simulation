@@ -4,7 +4,7 @@
 
 /* Implementation of class "MessageQueue" */
 
-/* 
+
 template <typename T>
 T MessageQueue<T>::receive()
 {
@@ -18,8 +18,16 @@ void MessageQueue<T>::send(T &&msg)
 {
     // FP.4a : The method send should use the mechanisms std::lock_guard<std::mutex> 
     // as well as _condition.notify_one() to add a new message to the queue and afterwards send a notification.
+
+    // perform vector modification under the lock
+    std::lock_guard<std::mutex> lck(_mtx);
+
+    // add vector to queue
+    std::cout << " Message #" << msg << " will be added to the queue" << std::endl;
+    _messages.push_back(std::move(msg));
+    _cond.notify_one();
 }
-*/
+
 
 /* Implementation of class "TrafficLight" */
 
@@ -96,6 +104,7 @@ void TrafficLight::cycleThroughPhases()
         // sends an update method to the message queue using move semantics
         //MessageQueue<T>::send(T &&msg)
         //_messages<TrafficLightPhase>.send(std::move(this->getCurrentPhase));
-
+        _queue->send(std::move(this->getCurrentPhase()));
+        //_queue.send(std::move(this->getCurrentPhase()));
     }
 }
