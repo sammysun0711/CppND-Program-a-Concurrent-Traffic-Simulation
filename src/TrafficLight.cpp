@@ -12,7 +12,7 @@ T MessageQueue<T>::receive()
     // to wait for and receive new messages and pull them from the queue using move semantics. 
     // The received object should then be returned by the receive function.
 
-    // perform vector modification under the lock
+    // perform queue modification under the lock
     std::unique_lock<std::mutex> ulck(_mtx);
     _cond.wait(ulck, [this] {return !_messages.empty(); });
 
@@ -29,10 +29,10 @@ void MessageQueue<T>::send(T &&msg)
     // FP.4a : The method send should use the mechanisms std::lock_guard<std::mutex> 
     // as well as _condition.notify_one() to add a new message to the queue and afterwards send a notification.
 
-    // perform vector modification under the lock
+    // perform queue modification under the lock
     std::lock_guard<std::mutex> lck(_mtx);
 
-    // add vector to queue
+    // add message to queue
     _messages.push_back(std::move(msg));
     _cond.notify_one();
 }
@@ -53,11 +53,7 @@ void TrafficLight::waitForGreen()
     // Once it receives TrafficLightPhase::green, the method returns.
     while(true)
     {
-        auto msg = _message_queue.receive();
-        if (msg == TrafficLightPhase::green)
-        {
-            return;
-        }
+        if (_message_queue.receive() == TrafficLightPhase::green) return;
     }
 }
 
@@ -93,16 +89,13 @@ void TrafficLight::cycleThroughPhases()
     {
         end = std::chrono::high_resolution_clock::now();
         duration = end - start;
-        if (duration.count() > time_span){
+        if (duration.count() > time_span)
+        {
             // toggle _currentPhase
             if (_currentPhase == TrafficLightPhase::red)
-            {
                 _currentPhase = TrafficLightPhase::green;
-            }
             else
-            {
                 _currentPhase = TrafficLightPhase::red;
-            }
             // sends an update method to the message queue using move semantics
             _message_queue.send(std::move(_currentPhase));
             // reset the time measurement time span and start
